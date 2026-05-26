@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 import random
 import math
-from pathlib import Path
+import requests
+import time
+
 
 @dataclass
 class SensorConfig:
@@ -11,8 +13,10 @@ class SensorConfig:
     anomaly_magnitude: float = 3.0
     drift_prob: float = 0.002
 
+
 class SensorSimulator:
     """Simulates a sensor producing data with noise, drift, and occasional anomalies."""
+
     def __init__(self, name: str, config: SensorConfig):
         self.name = name
         self.cfg = config
@@ -29,13 +33,16 @@ class SensorSimulator:
         self._maybe_drift()
 
         # baseline + noise
-        val = self.cfg.baseline + self.drift + self.rng.gauss(0.0, self.cfg.noise_sigma)
+        val = self.cfg.baseline + self.drift + self.rng.gauss(
+            0.0,
+            self.cfg.noise_sigma
+        )
 
-        # ANOMALY INJECTION
+        # anomaly injection
         if self.rng.random() < self.cfg.anomaly_prob:
             spike = self.cfg.anomaly_magnitude * self.cfg.noise_sigma
             sign = -1.0 if self.rng.random() < 0.5 else 1.0
-            val += sign * spike * self.rng.uniform(1.0, 2.0)  # stronger spike
+            val += sign * spike * self.rng.uniform(1.0, 2.0)
 
         # sine variation
         val += 0.3 * math.sin(self.t / 25.0)
@@ -44,16 +51,8 @@ class SensorSimulator:
 
 
 if __name__ == "__main__":
-    import argparse
-    import csv
 
-    parser = argparse.ArgumentParser(description="Generates random sensor data each run.")
-    parser.add_argument("--rows", type=int, default=250)
-    parser.add_argument("--out", default="outputs/simulated.csv")
-    parser.add_argument("--print", action="store_true")
-    args = parser.parse_args()
-
-    # UPDATED CONFIGS (VERY IMPORTANT)
+    API_URL = "http://127.0.0.1:8001/sensor-data"
 
     temp = SensorSimulator(
         "Temperature",
@@ -85,22 +84,30 @@ if __name__ == "__main__":
         )
     )
 
-    # output path
-    out_path = Path(args.out).expanduser().resolve()
-    out_path.parent.mkdir(parents=True, exist_ok=True)
+    while True:
 
-    with out_path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(["t", "temp", "press", "vib"])
+        vt = temp.next_value()
+        vp = press.next_value()
+        vv = vib.next_value()
 
-        for t in range(1, args.rows + 1):
-            vt = temp.next_value()
-            vp = press.next_value()
-            vv = vib.next_value()
+        # backend detector will classify severity
+        sensor_data = {
+            "temperature": round(vt, 2),
+            "pressure": round(vp, 2),
+            "vibration": round(vv, 2)
+        }
 
-            writer.writerow([t, f"{vt:.5f}", f"{vp:.5f}", f"{vv:.5f}"])
+        try:
 
-            if args.print:
-                print(f"{t},{vt:.5f},{vp:.5f},{vv:.5f}")
+            response = requests.post(
+                API_URL,
+                json=sensor_data
+            )
 
-    print(f"Saved {args.rows} rows to {out_path}")
+            print(f"Sent: {sensor_data}")
+            print(f"Response: {response.status_code}")
+
+        except Exception as e:
+            print(f"Error sending data: {e}")
+
+        time.sleep(2)

@@ -1,0 +1,31 @@
+services:
+
+  postgres:
+    image: postgres:15
+    container_name: sensor_postgres
+
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: sensors
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+
+  grafana:
+    image: grafana/grafana
+    container_name: sensor_grafana
+
+    ports:
+      - "3000:3000"
+
+    depends_on:
+      - postgres
+
+
+volumes:
+  postgres_data:

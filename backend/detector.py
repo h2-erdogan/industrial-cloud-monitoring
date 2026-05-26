@@ -88,7 +88,7 @@ __all__ = ["RollingConfig", "RollingStatsDetector"]
 # Standalone test for 3 sensors
 # ------------------------------------------------------------
 if __name__ == "__main__":
-    from simulator import SensorSimulator, SensorConfig
+    from backend.simulator import SensorSimulator, SensorConfig
 
     print(">>> multi-sensor rolling detector test (Temperature, Pressure, Vibration)\n")
 
