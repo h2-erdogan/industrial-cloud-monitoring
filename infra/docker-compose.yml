@@ -1,8 +1,8 @@
 services:
-
   postgres:
     image: postgres:15
     container_name: sensor_postgres
+    restart: unless-stopped
 
     environment:
       POSTGRES_USER: admin
@@ -15,28 +15,38 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d sensors"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: ..
       dockerfile: backend/Dockerfile
 
     container_name: sensor_backend
+    restart: unless-stopped
 
     ports:
       - "8001:8001"
 
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   grafana:
-    image: grafana/grafana
+    image: grafana/grafana:latest
     container_name: sensor_grafana
+    restart: unless-stopped
 
     ports:
       - "3000:3000"
 
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:
