@@ -9,7 +9,7 @@
 
 Real-time industrial monitoring platform built using **FastAPI**, **PostgreSQL**, **Docker**, **Grafana**, and **GitHub Actions**.
 
-The project simulates industrial IoT sensors, stores telemetry data, performs rolling statistical anomaly detection, and visualizes results through Grafana dashboards.
+The project simulates industrial IoT sensors, stores telemetry data, performs rolling statistical anomaly detection, and visualizes results through automatically provisioned Grafana dashboards.
 
 ---
 
@@ -21,7 +21,7 @@ The project simulates industrial IoT sensors, stores telemetry data, performs ro
 
 # Overview
 
-This project demonstrates how a production-style monitoring platform can be built using modern backend and DevOps technologies.
+This project demonstrates how a production-style industrial monitoring platform can be built using modern backend and DevOps technologies.
 
 It combines:
 
@@ -31,9 +31,10 @@ It combines:
 - Containerized services
 - Database persistence
 - Monitoring dashboards
+- Automated Grafana provisioning
 - CI automation
 
-The project follows production-oriented software engineering practices including containerization, health monitoring, automated CI validation, and modular backend design.
+The project follows production-oriented software engineering practices including containerization, health monitoring, automated CI validation, persistent storage, automated dashboard provisioning, and modular backend design.
 
 ---
 
@@ -67,9 +68,14 @@ Docker Compose
 ├── FastAPI Backend
 │
 └── Grafana
+    │
+    ├── PostgreSQL Datasource Provisioning
+    └── Dashboard Provisioning
 ```
 
-The containers communicate through Docker Compose while PostgreSQL stores sensor readings and Grafana visualizes the collected metrics.
+The containers communicate through the Docker Compose network. PostgreSQL stores sensor readings, the FastAPI backend processes incoming telemetry, and Grafana visualizes the collected metrics.
+
+Grafana datasource and dashboard configuration are automatically provisioned when the container starts.
 
 ---
 
@@ -80,6 +86,9 @@ The containers communicate through Docker Compose while PostgreSQL stores sensor
 - FastAPI REST API
 - PostgreSQL persistence
 - Grafana dashboards
+- Automatic Grafana datasource provisioning
+- Automatic Grafana dashboard provisioning
+- Persistent Grafana storage
 - Dockerized deployment
 - Docker health checks
 - Health endpoint (`/health`)
@@ -111,6 +120,7 @@ The containers communicate through Docker Compose while PostgreSQL stores sensor
 ## Monitoring
 
 - Grafana
+- Grafana Provisioning
 
 ---
 
@@ -136,7 +146,18 @@ industrial-cloud-monitoring/
 │   └── simulator.py
 │
 ├── infra/
-│   └── docker-compose.yml
+│   ├── docker-compose.yml
+│   │
+│   └── grafana/
+│       ├── dashboards/
+│       │   └── industrial-monitoring.json
+│       │
+│       └── provisioning/
+│           ├── dashboards/
+│           │   └── dashboards.yml
+│           │
+│           └── datasources/
+│               └── postgres.yml
 │
 ├── assets/
 │   └── dashboard.png
@@ -176,6 +197,13 @@ The Docker Compose stack launches:
 - FastAPI Backend
 - Grafana
 
+Grafana is automatically provisioned at startup with:
+
+- PostgreSQL datasource configuration
+- Industrial monitoring dashboard
+
+No manual Grafana datasource or dashboard setup is required.
+
 ---
 
 ## Run the Sensor Simulator
@@ -186,7 +214,7 @@ Open a second terminal.
 python3 backend/simulator.py
 ```
 
-The simulator continuously sends industrial sensor readings to the API.
+The simulator continuously sends industrial sensor readings to the FastAPI backend.
 
 ---
 
@@ -197,6 +225,7 @@ The simulator continuously sends industrial sensor readings to the API.
 | FastAPI | http://localhost:8001 |
 | Swagger UI | http://localhost:8001/docs |
 | Grafana | http://localhost:3000 |
+
 ---
 
 Default Grafana credentials:
@@ -282,10 +311,44 @@ This endpoint can be used by:
 
 The Docker Compose configuration includes:
 
-- Automatic restart policy
+- Automatic restart policies
 - PostgreSQL health checks
 - Service dependency validation
+- Persistent PostgreSQL storage
+- Persistent Grafana storage
+- Grafana datasource provisioning
+- Grafana dashboard provisioning
 - Production-oriented container startup
+
+---
+
+# Grafana Provisioning
+
+Grafana configuration is stored in the repository and automatically loaded when the Grafana container starts.
+
+```text
+infra/grafana/
+│
+├── dashboards/
+│   └── industrial-monitoring.json
+│
+└── provisioning/
+    ├── dashboards/
+    │   └── dashboards.yml
+    │
+    └── datasources/
+        └── postgres.yml
+```
+
+The PostgreSQL datasource is automatically configured to communicate with the PostgreSQL container through the Docker Compose network.
+
+The dashboard provider automatically loads the industrial monitoring dashboard from:
+
+```text
+/var/lib/grafana/dashboards
+```
+
+This allows the monitoring environment to be reproduced without manually creating the datasource or importing the dashboard through the Grafana UI.
 
 ---
 
@@ -325,16 +388,20 @@ This project follows several production-oriented software engineering practices.
 - Health endpoint
 - PostgreSQL health checks
 - Restart policies
+- Persistent Docker volumes
 
 ### Backend
 
 - RESTful API
 - SQLAlchemy ORM
 - Pydantic request validation
+- Modular application structure
 
 ### Monitoring
 
-- Grafana dashboards
+- Grafana dashboard visualization
+- Grafana dashboard provisioning
+- PostgreSQL datasource provisioning
 - Statistical anomaly detection
 - Severity classification
 
@@ -342,7 +409,8 @@ This project follows several production-oriented software engineering practices.
 
 - Continuous Integration
 - Docker image validation
-- Compose configuration validation
+- Docker Compose configuration validation
+- Infrastructure configuration stored in version control
 
 ---
 
@@ -353,10 +421,13 @@ This project follows several production-oriented software engineering practices.
 - FastAPI REST API
 - PostgreSQL persistence
 - Grafana dashboard visualization
+- Automated Grafana datasource and dashboard provisioning
+- Persistent Docker volumes
 - Containerized deployment
 - Health monitoring endpoint
 - Production-style Docker Compose
 - Automated CI pipeline using GitHub Actions
+- Reproducible monitoring configuration
 
 ---
 
